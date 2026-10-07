@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler"
+                  exporterVersion="5.0.0">
+  
+  <bpmn:process id="Processo_Grade_Horaria" name="Gestão de Grade Horária - Instituição de Ensino" isExecutable="true">
+    
+    <!-- Início -->
+    <bpmn:startEvent id="StartEvent_1" name="Início da Semana Letiva">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    
+    <!-- Receber Grade Oficial -->
+    <bpmn:userTask id="Task_Receber_Grade" name="Receber Grade Horária Oficial" camunda:assignee="responsavel_grade">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:incoming>Flow_Retorno_Correcao</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Alterações? -->
+    <bpmn:exclusiveGateway id="Gateway_Alteracoes" name="Houve alterações de última hora?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sim_Alteracoes</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Nao_Alteracoes</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Atualizar Grade -->
+    <bpmn:userTask id="Task_Atualizar_Grade" name="Atualizar Grade no Sistema" camunda:assignee="responsavel_grade">
+      <bpmn:incoming>Flow_Sim_Alteracoes</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Montar PowerPoint -->
+    <bpmn:userTask id="Task_Montar_PPT" name="Montar PowerPoint da Grade" camunda:assignee="responsavel_ppt">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_Nao_Alteracoes</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Revisar Conteúdo -->
+    <bpmn:userTask id="Task_Revisar" name="Revisar Conteúdo do PowerPoint" camunda:assignee="revisor">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Gateway: Aprovado? -->
+    <bpmn:exclusiveGateway id="Gateway_Aprovacao" name="Conteúdo aprovado?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_Aprovado</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Nao_Aprovado</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Corrigir -->
+    <bpmn:userTask id="Task_Corrigir" name="Corrigir PowerPoint" camunda:assignee="responsavel_ppt">
+      <bpmn:incoming>Flow_Nao_Aprovado</bpmn:incoming>
+      <bpmn:outgoing>Flow_Retorno_Correcao</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Publicar -->
+    <bpmn:serviceTask id="Task_Publicar" name="Publicar no Sistema de Espelhamento" camunda:class="com.instituicao.PublicarGradeDelegate">
+      <bpmn:incoming>Flow_Aprovado</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Exibir -->
+    <bpmn:serviceTask id="Task_Exibir" name="Exibir Grade na TV/Tela" camunda:class="com.instituicao.ExibirGradeDelegate">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Evento Intermediário: Aviso Urgente -->
+    <bpmn:intermediateCatchEvent id="Event_Aviso_Urgente" name="Aviso Urgente Recebido&#10;(Professor Faltando)">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1" messageRef="Message_AvisoUrgente"/>
+    </bpmn:intermediateCatchEvent>
+    
+    <!-- Gateway: Horário atual? -->
+    <bpmn:exclusiveGateway id="Gateway_Horario" name="É horário de exibição atual?">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_Sim_Horario</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Nao_Horario</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    
+    <!-- Atualização Emergencial -->
+    <bpmn:userTask id="Task_Atualizacao_Emergencial" name="Atualização Emergencial do PowerPoint" camunda:assignee="responsavel_ppt">
+      <bpmn:incoming>Flow_Sim_Horario</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:userTask>
+    
+    <!-- Notificar -->
+    <bpmn:sendTask id="Task_Notificar" name="Notificar Responsável para Próxima Atualização" camunda:class="com.instituicao.NotificacaoDelegate">
+      <bpmn:incoming>Flow_Nao_Horario</bpmn:incoming>
+      <bpmn:outgoing>Flow_Aguardar</bpmn:outgoing>
+    </bpmn:sendTask>
+    
+    <!-- Aguardar -->
+    <bpmn:intermediateCatchEvent id="Event_Timer" name="Aguardar próximo horário">
+      <bpmn:incoming>Flow_Aguardar</bpmn:incoming>
+      <bpmn:outgoing>Flow_Timer_Out</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TimerEventDefinition_1">
+        <bpmn:timeDuration>PT1H</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    
+    <!-- Republicar Emergencial -->
+    <bpmn:serviceTask id="Task_Republicar" name="Republicar Grade Atualizada" camunda:class="com.instituicao.RepublicarGradeDelegate">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:incoming>Flow_Timer_Out</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:serviceTask>
+    
+    <!-- Fim -->
+    <bpmn:endEvent id="EndEvent_1" name="Grade Exibida Corretamente">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+    </bpmn:endEvent>
+    
+    <!-- Sequence Flows -->
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Receber_Grade"/>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Receber_Grade" targetRef="Gateway_Alteracoes"/>
+    <bpmn:sequenceFlow id="Flow_Sim_Alteracoes" name="Sim" sourceRef="Gateway_Alteracoes" targetRef="Task_Atualizar_Grade"/>
+    <bpmn:sequenceFlow id="Flow_Nao_Alteracoes" name="Não" sourceRef="Gateway_Alteracoes" targetRef="Task_Montar_PPT"/>
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Atualizar_Grade" targetRef="Task_Montar_PPT"/>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Montar_PPT" targetRef="Task_Revisar"/>
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Revisar" targetRef="Gateway_Aprovacao"/>
+    <bpmn:sequenceFlow id="Flow_Aprovado" name="Sim" sourceRef="Gateway_Aprovacao" targetRef="Task_Publicar"/>
+    <bpmn:sequenceFlow id="Flow_Nao_Aprovado" name="Não" sourceRef="Gateway_Aprovacao" targetRef="Task_Corrigir"/>
+    <bpmn:sequenceFlow id="Flow_Retorno_Correcao" sourceRef="Task_Corrigir" targetRef="Task_Receber_Grade"/>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_Publicar" targetRef="Task_Exibir"/>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_Exibir" targetRef="Event_Aviso_Urgente"/>
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="Event_Aviso_Urgente" targetRef="Gateway_Horario"/>
+    <bpmn:sequenceFlow id="Flow_Sim_Horario" name="Sim" sourceRef="Gateway_Horario" targetRef="Task_Atualizacao_Emergencial"/>
+    <bpmn:sequenceFlow id="Flow_Nao_Horario" name="Não" sourceRef="Gateway_Horario" targetRef="Task_Notificar"/>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_Atualizacao_Emergencial" targetRef="Task_Republicar"/>
+    <bpmn:sequenceFlow id="Flow_Aguardar" sourceRef="Task_Notificar" targetRef="Event_Timer"/>
+    <bpmn:sequenceFlow id="Flow_Timer_Out" sourceRef="Event_Timer" targetRef="Task_Republicar"/>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_Republicar" targetRef="EndEvent_1"/>
+    
+  </bpmn:process>
+  
+  <!-- Definição da Mensagem -->
+  <bpmn:message id="Message_AvisoUrgente" name="AvisoUrgente"/>
+  
+  <!-- Diagrama Visual -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Processo_Grade_Horaria">
+      
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_1" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="182" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Receber_Grade" bpmnElement="Task_Receber_Grade">
+        <dc:Bounds x="240" y="160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Alteracoes" bpmnElement="Gateway_Alteracoes" isMarkerVisible="true">
+        <dc:Bounds x="410" y="175" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Atualizar_Grade" bpmnElement="Task_Atualizar_Grade">
+        <dc:Bounds x="520" y="80" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Montar_PPT" bpmnElement="Task_Montar_PPT">
+        <dc:Bounds x="520" y="240" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Revisar" bpmnElement="Task_Revisar">
+        <dc:Bounds x="700" y="240" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Aprovacao" bpmnElement="Gateway_Aprovacao" isMarkerVisible="true">
+        <dc:Bounds x="870" y="255" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Corrigir" bpmnElement="Task_Corrigir">
+        <dc:Bounds x="835" y="400" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Publicar" bpmnElement="Task_Publicar">
+        <dc:Bounds x="1000" y="240" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Exibir" bpmnElement="Task_Exibir">
+        <dc:Bounds x="1180" y="240" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Event_Aviso_Urgente" bpmnElement="Event_Aviso_Urgente">
+        <dc:Bounds x="1360" y="262" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Gateway_Horario" bpmnElement="Gateway_Horario" isMarkerVisible="true">
+        <dc:Bounds x="1450" y="255" width="50" height="50"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Atualizacao_Emergencial" bpmnElement="Task_Atualizacao_Emergencial">
+        <dc:Bounds x="1560" y="160" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Notificar" bpmnElement="Task_Notificar">
+        <dc:Bounds x="1560" y="320" width="140" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Event_Timer" bpmnElement="Event_Timer">
+        <dc:Bounds x="1750" y="342" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_Task_Republicar" bpmnElement="Task_Republicar">
+        <dc:Bounds x="1750" y="160" width="120" height="80"/>
+      </bpmndi:BPMNShape>
+      
+      <bpmndi:BPMNShape id="_BPMNShape_EndEvent_1" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1940" y="182" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  
+</bpmn:definitions>

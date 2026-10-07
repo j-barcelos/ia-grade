@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matriz de Requisitos — Sistema de Gestão de Grade Horária, Ausências e Salas</title>
+<style>
+  :root{
+    --bg:#f1f4fa; --surface:#ffffff; --surface-2:#f8fafc;
+    --text:#1e293b; --muted:#64748b; --border:#e2e8f0;
+    --primary:#4f46e5; --primary-soft:#eef2ff;
+    --header-grad:linear-gradient(135deg,#1e1b4b 0%,#312e81 45%,#4f46e5 100%);
+    --alta-bg:#fee2e2; --alta-fg:#b91c1c;
+    --media-bg:#fef3c7; --media-fg:#b45309;
+    --baixa-bg:#dcfce7; --baixa-fg:#15803d;
+    --shadow:0 4px 14px rgba(15,23,42,.07);
+    --radius:14px;
+  }
+  body.dark{
+    --bg:#0f172a; --surface:#1e293b; --surface-2:#16213a;
+    --text:#e2e8f0; --muted:#94a3b8; --border:#334155;
+    --primary:#818cf8; --primary-soft:#27306b;
+    --alta-bg:#7f1d1d; --alta-fg:#fecaca;
+    --media-bg:#78350f; --media-fg:#fde68a;
+    --baixa-bg:#14532d; --baixa-fg:#bbf7d0;
+    --shadow:0 4px 14px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.55;
+    transition:background .3s,color .3s;
+  }
+
+  /* ===== HEADER ===== */
+  header{
+    background:var(--header-grad);color:#fff;
+    padding:48px 24px 90px;text-align:center;position:relative;
+  }
+  .overline{letter-spacing:.25em;font-size:.75rem;text-transform:uppercase;opacity:.85;font-weight:600}
+  header h1{font-size:clamp(1.5rem,4vw,2.4rem);margin:.5rem 0 .3rem;font-weight:700}
+  header p.sub{opacity:.9;font-size:1.05rem;max-width:760px;margin:0 auto}
+  .meta{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+  .meta span{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+    padding:6px 16px;border-radius:999px;font-size:.82rem;backdrop-filter:blur(4px);
+  }
+  header::after{
+    content:"";position:absolute;bottom:-1px;left:0;right:0;height:40px;
+    background:var(--bg);border-radius:50% 50% 0 0/100% 100% 0 0;
+  }
+
+  /* ===== STATS ===== */
+  .stats{
+    max-width:1100px;margin:-55px auto 0;padding:0 20px;position:relative;z-index:2;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;
+  }
+  .stat{
+    background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:22px 18px;text-align:center;border:1px solid var(--border);
+  }
+  .stat .num{font-size:2rem;font-weight:800;color:var(--primary)}
+  .stat .lbl{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+  /* ===== NAV ===== */
+  nav{
+    position:sticky;top:0;z-index:50;background:var(--surface);
+    border-bottom:1px solid var(--border);box-shadow:0 2px 10px rgba(15,23,42,.05);
+  }
+  .nav-inner{max-width:1100px;margin:0 auto;padding:10px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  nav a{
+    color:var(--muted);text-decoration:none;font-size:.88rem;font-weight:600;
+    padding:8px 14px;border-radius:8px;transition:.2s;
+  }
+  nav a:hover{background:var(--primary-soft);color:var(--primary)}
+  .nav-spacer{flex:1}
+  .btn{
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:600;transition:.2s;
+  }
+  .btn:hover{border-color:var(--primary);color:var(--primary)}
+
+  /* ===== TOOLBAR ===== */
+  .toolbar{
+    max-width:1100px;margin:28px auto 8px;padding:0 20px;
+    display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+  }
+  .search{
+    flex:1;min-width:240px;position:relative;
+  }
+  .search input{
+    width:100%;padding:12px 16px 12px 42px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface);color:var(--text);
+    font-size:.95rem;outline:none;transition:.2s;
+  }
+  .search input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+  .search::before{content:"🔍";position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.9rem;opacity:.6}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip-f{
+    padding:8px 14px;border-radius:999px;font-size:.82rem;font-weight:600;cursor:pointer;
+    border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:.2s;
+  }
+  .chip-f:hover{border-color:var(--primary);color:var(--primary)}
+  .chip-f.active{background:var(--primary);border-color:var(--primary);color:#fff}
+  .counter{
+    max-width:1100px;margin:6px auto 0;padding:0 22px;font-size:.82rem;color:var(--muted);
+  }
+
+  /* ===== SECTIONS / CARDS ===== */
+  main{max-width:1100px;margin:24px auto 60px;padding:0 20px}
+  section{margin-bottom:40px}
+  .sec-head{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .sec-head .icon{
+    width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:1.3rem;background:var(--primary-soft);flex-shrink:0;
+  }
+  .sec-head h2{font-size:1.3rem}
+  .sec-head p{font-size:.85rem;color:var(--muted)}
+  .card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;
+  }
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:760px}
+  thead th{
+    background:var(--surface-2);text-align:left;padding:13px 16px;
+    font-size:.75rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+    border-bottom:2px solid var(--border);white-space:nowrap;
+  }
+  tbody td{padding:13px 16px;border-bottom:1px solid var(--border);font-size:.9rem;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .15s}
+  tbody tr:hover{background:var(--primary-soft)}
+  td.id{font-family:Consolas,monospace;font-weight:700;color:var(--primary);white-space:nowrap;font-size:.85rem}
+  td.req{font-weight:600;white-space:nowrap}
+  td.ator{color:var(--muted);font-size:.84rem}
+  td.desc{min-width:280px}
+
+  /* ===== BADGES ===== */
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:4px 12px;border-radius:999px;font-size:.75rem;font-weight:700;white-space:nowrap;
+  }
+  .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  .b-alta{background:var(--alta-bg);color:var(--alta-fg)}
+  .b-media{background:var(--media-bg);color:var(--media-fg)}
+  .b-baixa{background:var(--baixa-bg);color:var(--baixa-fg)}
+
+  .cat{
+    display:inline-block;padding:3px 10px;border-radius:6px;
+    font-size:.72rem;font-weight:700;white-space:nowrap;
+  }
+  .cat-cad{background:#e0f2fe;color:#0369a1}
+  .cat-gra{background:#e0e7ff;color:#4338ca}
+  .cat-aus{background:#ffe4e6;color:#be123c}
+  .cat-men{background:#fef9c3;color:#a16207}
+  .cat-aut{background:#f3e8ff;color:#7e22ce}
+  .cat-rel{background:#d1fae5;color:#047857}
+  .cat-des{background:#ffedd5;color:#c2410c}
+  .cat-seg{background:#fee2e2;color:#b91c1c}
+  .cat-usa{background:#cffafe;color:#0e7490}
+  .cat-tec{background:#e2e8f0;color:#334155}
+  .cat-man{background:#ccfbf1;color:#0f766e}
+  body.dark .cat{filter:brightness(.85) saturate(1.3)}
+
+  /* ===== FOOTER ===== */
+  footer{
+    text-align:center;padding:26px 20px;color:var(--muted);
+    font-size:.82rem;border-top:1px solid var(--border);
+  }
+  .note{font-size:.78rem;color:var(--muted);font-style:italic;margin-top:10px;padding:0 20px}
+
+  /* ===== PRINT ===== */
+  @media print{
+    nav,.toolbar,.counter,header::after{display:none!important}
+    body{background:#fff}
+    header{padding:24px;color:#000;background:#fff!important;border-bottom:2px solid #000}
+    .card{box-shadow:none;border:1px solid #ccc;page-break-inside:auto}
+    tr{page-break-inside:avoid}
+    .stats{margin-top:10px}
+  }
+  @media(max-width:640px){
+    header{padding:36px 16px 80px}
+    .sec-head h2{font-size:1.1rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="overline">FATEC • Análise e Desenvolvimento de Sistemas</div>
+  <h1>Matriz de Requisitos do Sistema</h1>
+  <p class="sub">Sistema de Gestão de Grade Horária, Ausências e Salas — Documento de Requisitos</p>
+  <div class="meta">
+    <span>📅 28 de agosto de 2026</span>
+    <span>📌 Versão 1.0</span>
+    <span>👥 Equipe de Desenvolvimento</span>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="num">32</div><div class="lbl">Requisitos Funcionais</div></div>
+  <div class="stat"><div class="num">22</div><div class="lbl">Requisitos Não Funcionais</div></div>
+  <div class="stat"><div class="num">14</div><div class="lbl">Regras de Negócio</div></div>
+  <div class="stat"><div class="num">68</div><div class="lbl">Itens no Total</div></div>
+</div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="#rf">Funcionais</a>
+    <a href="#rnf">Não Funcionais</a>
+    <a href="#rn">Regras de Negócio</a>
+    <span class="nav-spacer"></span>
+    <button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button>
+    <button class="btn" id="themeBtn">🌙 Escuro</button>
+  </div>
+</nav>
+
+<div class="toolbar">
+  <div class="search"><input type="text" id="search" placeholder="Buscar por ID, requisito, descrição ou ator..."></div>
+  <div class="chips" id="prioChips">
+    <button class="chip-f active" data-prio="all">Todas as prioridades</button>
+    <button class="chip-f" data-prio="alta">Alta</button>
+    <button class="chip-f" data-prio="media">Média</button>
+    <button class="chip-f" data-prio="baixa">Baixa</button>
+  </div>
+</div>
+<div class="toolbar">
+  <div class="chips" id="catChips">
+    <button class="chip-f active" data-cat="all">Todas as categorias</button>
+    <button class="chip-f" data-cat="cad">Cadastros</button>
+    <button class="chip-f" data-cat="gra">Grade Horária</button>
+    <button class="chip-f" data-cat="aus">Ausências</button>
+    <button class="chip-f" data-cat="men">Mensagens</button>
+    <button class="chip-f" data-cat="aut">Autenticação</button>
+    <button class="chip-f" data-cat="rel">Relatórios</button>
+  </div>
+</div>
+<div class="counter" id="counter"></div>
+
+<main>
+
+<!-- ==================== REQUISITOS FUNCIONAIS ==================== -->
+<section id="rf">
+  <div class="sec-head">
+    <div class="icon">⚙️</div>
+    <div><h2>Requisitos Funcionais</h2><p>32 requisitos — funcionalidades do sistema por módulo</p></div>
+  </div>
+  <div class="card"><div class="table-wrap">
+  <table>
+    <thead><tr><th>ID</th><th>Categoria</th><th>Requisito</th><th>Descrição</th><th>Prioridade</th><th>Ator</th></tr></thead>
+    <tbody>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF001</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Curso</td><td class="desc">Permitir cadastro, edição e exclusão de cursos (ex.: ITI, DMD, GMP, RH etc.).</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Coordenador</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF002</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Disciplina</td><td class="desc">Permitir cadastro de disciplinas, vinculando-as a cursos e professores.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Coordenador</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF003</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Professor</td><td class="desc">Cadastro de professores com dados: nome, CPF, e-mail, data de início/fim de contrato, carga horária e disciplinas ministradas.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Secretaria</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF004</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Sala</td><td class="desc">Cadastro de salas com número, capacidade (sentados/em pé), tipo (teórica/laboratório) e número de computadores, quando aplicável.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Secretaria</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF005</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Turma</td><td class="desc">Cadastro de turmas por curso, semestre e período (matutino, vespertino ou noturno).</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Coordenador</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF006</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Horário</td><td class="desc">Cadastro de horários padrão (ex.: 08:00–09:40, 19:20–21:00) e vinculação a disciplinas/turmas.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador, Coordenador</td></tr>
+      <tr data-cat="cad" data-prio="alta"><td class="id">RF007</td><td><span class="cat cat-cad">Cadastros</span></td><td class="req">Cadastrar Período Letivo</td><td class="desc">Cadastro de períodos (ex.: 2026.1, 2026.2) com datas de início e fim.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador</td></tr>
+      <tr data-cat="gra" data-prio="alta"><td class="id">RF008</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Montar Grade Horária</td><td class="desc">Permitir a montagem de grade horária por curso/turma, vinculando disciplinas, professores, salas e horários.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Coordenador, System Manager</td></tr>
+      <tr data-cat="gra" data-prio="alta"><td class="id">RF009</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Alterar Grade Horária</td><td class="desc">Permitir alterações temporárias ou permanentes na grade, como troca de sala, professor ou horário.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Coordenador, Secretaria</td></tr>
+      <tr data-cat="gra" data-prio="alta"><td class="id">RF010</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Visualizar Grade Horária</td><td class="desc">Exibir grade horária por curso, turma, professor ou sala, com cores pastel por curso.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Todos (alunos, professores, secretaria)</td></tr>
+      <tr data-cat="gra" data-prio="media"><td class="id">RF011</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Bloquear Sala</td><td class="desc">Bloquear sala para eventos, como TG, Semana Tecnológica ou Prefeitura.</td><td><span class="badge b-media">Média</span></td><td class="ator">Coordenador, Secretaria</td></tr>
+      <tr data-cat="gra" data-prio="media"><td class="id">RF012</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Reserva de Sala</td><td class="desc">Reservar sala para uso temporário, como reposição de aula.</td><td><span class="badge b-media">Média</span></td><td class="ator">Secretaria, Coordenador</td></tr>
+      <tr data-cat="gra" data-prio="alta"><td class="id">RF013</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Gerar Grade do Dia</td><td class="desc">Gerar automaticamente a grade do dia, via cron, com status presente, ausente ou bloqueada.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Sistema (automático)</td></tr>
+      <tr data-cat="gra" data-prio="media"><td class="id">RF014</td><td><span class="cat cat-gra">Grade Horária</span></td><td class="req">Notificar Alterações</td><td class="desc">Enviar notificações por e-mail ou mensagem no sistema para professores e alunos sobre alterações na grade.</td><td><span class="badge b-media">Média</span></td><td class="ator">Sistema (automático)</td></tr>
+      <tr data-cat="aus" data-prio="alta"><td class="id">RF015</td><td><span class="cat cat-aus">Ausências</span></td><td class="req">Registrar Ausência</td><td class="desc">Registrar ausência de professor por disciplina, turma e horário, com motivo (ex.: trânsito ou doença).</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Secretaria</td></tr>
+      <tr data-cat="aus" data-prio="alta"><td class="id">RF016</td><td><span class="cat cat-aus">Ausências</span></td><td class="req">Registrar Reposição</td><td class="desc">Registrar reposição de aula com data, horário, sala e professor substituto.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Secretaria, Coordenador</td></tr>
+      <tr data-cat="aus" data-prio="alta"><td class="id">RF017</td><td><span class="cat cat-aus">Ausências</span></td><td class="req">Gerar Relatórios de Faltas</td><td class="desc">Gerar relatório mensal de faltas por professor, com filtros por período, disciplina e turma.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">RH, Coordenador</td></tr>
+      <tr data-cat="aus" data-prio="alta"><td class="id">RF018</td><td><span class="cat cat-aus">Ausências</span></td><td class="req">Auditar Faltas</td><td class="desc">Auditar faltas não repostas e estornar pagamentos após dois ou três meses.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">RH</td></tr>
+      <tr data-cat="aus" data-prio="media"><td class="id">RF019</td><td><span class="cat cat-aus">Ausências</span></td><td class="req">Visualizar Status de Faltas</td><td class="desc">Dashboard com contagem de professores presentes e ausentes no dia.</td><td><span class="badge b-media">Média</span></td><td class="ator">Diretoria, Coordenador</td></tr>
+      <tr data-cat="men" data-prio="media"><td class="id">RF020</td><td><span class="cat cat-men">Mensagens</span></td><td class="req">Cadastrar Mensagem</td><td class="desc">Inserir mensagens globais, como "Castelo parou" ou "Aula cancelada por falta de água".</td><td><span class="badge b-media">Média</span></td><td class="ator">Coordenador, Secretaria</td></tr>
+      <tr data-cat="men" data-prio="media"><td class="id">RF021</td><td><span class="cat cat-men">Mensagens</span></td><td class="req">Exibir Mensagens</td><td class="desc">Exibir mensagens na parte inferior da tela da grade horária.</td><td><span class="badge b-media">Média</span></td><td class="ator">Todos</td></tr>
+      <tr data-cat="men" data-prio="media"><td class="id">RF022</td><td><span class="cat cat-men">Mensagens</span></td><td class="req">Cadastrar Evento</td><td class="desc">Registrar eventos, como TG1, TG2 e Semana Tecnológica, com data, sala e descrição.</td><td><span class="badge b-media">Média</span></td><td class="ator">Coordenador, Secretaria</td></tr>
+      <tr data-cat="men" data-prio="baixa"><td class="id">RF023</td><td><span class="cat cat-men">Mensagens</span></td><td class="req">Visualizar Eventos</td><td class="desc">Exibir eventos na grade horária, como "Auditório – Prefeitura".</td><td><span class="badge b-baixa">Baixa</span></td><td class="ator">Todos</td></tr>
+      <tr data-cat="aut" data-prio="alta"><td class="id">RF024</td><td><span class="cat cat-aut">Autenticação</span></td><td class="req">Login / Logout</td><td class="desc">Autenticação via e-mail institucional, CPF e data de nascimento.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Todos</td></tr>
+      <tr data-cat="aut" data-prio="alta"><td class="id">RF025</td><td><span class="cat cat-aut">Autenticação</span></td><td class="req">Gerenciar Usuários</td><td class="desc">Cadastrar, editar e desativar usuários, como professores, secretaria e coordenadores.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador</td></tr>
+      <tr data-cat="aut" data-prio="alta"><td class="id">RF026</td><td><span class="cat cat-aut">Autenticação</span></td><td class="req">Gerenciar Papéis (RBAC)</td><td class="desc">Definir papéis (Administrador, Coordenador, Secretaria, Professor) e suas respectivas permissões.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Administrador</td></tr>
+      <tr data-cat="aut" data-prio="media"><td class="id">RF027</td><td><span class="cat cat-aut">Autenticação</span></td><td class="req">Recuperar Senha</td><td class="desc">Permitir recuperação de senha via e-mail institucional.</td><td><span class="badge b-media">Média</span></td><td class="ator">Todos</td></tr>
+      <tr data-cat="aut" data-prio="alta"><td class="id">RF028</td><td><span class="cat cat-aut">Autenticação</span></td><td class="req">Sessão Segura</td><td class="desc">Validar sessão ativa em todas as páginas e redirecionar para login caso a sessão expire.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Sistema</td></tr>
+      <tr data-cat="rel" data-prio="media"><td class="id">RF029</td><td><span class="cat cat-rel">Relatórios</span></td><td class="req">Relatórios de Ocupação de Salas</td><td class="desc">Gerar relatório de ocupação por sala e período.</td><td><span class="badge b-media">Média</span></td><td class="ator">Coordenador, Secretaria</td></tr>
+      <tr data-cat="rel" data-prio="alta"><td class="id">RF030</td><td><span class="cat cat-rel">Relatórios</span></td><td class="req">Relatórios de Carga Horária</td><td class="desc">Gerar relatório de carga horária cumprida por professor.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">RH, Coordenador</td></tr>
+      <tr data-cat="rel" data-prio="alta"><td class="id">RF031</td><td><span class="cat cat-rel">Relatórios</span></td><td class="req">Dashboard de Ausências</td><td class="desc">Exibir em tempo real o total de professores presentes e ausentes, incluindo lista de ausentes e motivos.</td><td><span class="badge b-alta">Alta</span></td><td class="ator">Diretoria, RH</td></tr>
+      <tr data-cat="rel" data-prio="media"><td class="id">RF032</td><td><span class="cat cat-rel">Relatórios</span></td><td class="req">Exportar Relatórios</td><td class="desc">Exportar relatórios em PDF ou Excel.</td><td><span class="badge b-media">Média</span></td><td class="ator">RH, Coordenador</td></tr>
+    </tbody>
+  </table>
+  </div></div>
+</section>
+
+<!-- ==================== REQUISITOS NÃO FUNCIONAIS ==================== -->
+<section id="rnf">
+  <div class="sec-head">
+    <div class="icon">🛡️</div>
+    <div><h2>Requisitos Não Funcionais</h2><p>22 requisitos — qualidade, restrições e atributos do sistema</p></div>
+  </div>
+  <div class="card"><div class="table-wrap">
+  <table>
+    <thead><tr><th>ID</th><th>Categoria</th><th>Requisito</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr data-cat="rnf-des"><td class="id">RNF001</td><td><span class="cat cat-des">Desempenho</span></td><td class="req">Tempo de Resposta</td><td class="desc">O sistema deve responder a requisições em até 2 segundos em 95% dos casos.</td></tr>
+      <tr data-cat="rnf-des"><td class="id">RNF002</td><td><span class="cat cat-des">Desempenho</span></td><td class="req">Concorrência</td><td class="desc">Suportar até 200 usuários simultâneos.</td></tr>
+      <tr data-cat="rnf-des"><td class="id">RNF003</td><td><span class="cat cat-des">Desempenho</span></td><td class="req">Agendamento</td><td class="desc">O cron deve rodar a cada 10 minutos para atualizar a grade do dia.</td></tr>
+      <tr data-cat="rnf-seg"><td class="id">RNF004</td><td><span class="cat cat-seg">Segurança</span></td><td class="req">Autenticação</td><td class="desc">Uso de sessões seguras com PHP e cookies protegidos.</td></tr>
+      <tr data-cat="rnf-seg"><td class="id">RNF005</td><td><span class="cat cat-seg">Segurança</span></td><td class="req">Autorização</td><td class="desc">RBAC para controle de acesso por papel.</td></tr>
+      <tr data-cat="rnf-seg"><td class="id">RNF006</td><td><span class="cat cat-seg">Segurança</span></td><td class="req">Proteção contra SQL Injection</td><td class="desc">Uso de PDO para conexão com banco de dados.</td></tr>
+      <tr data-cat="rnf-seg"><td class="id">RNF007</td><td><span class="cat cat-seg">Segurança</span></td><td class="req">Backup</td><td class="desc">Backup automático do banco de dados diariamente.</td></tr>
+      <tr data-cat="rnf-seg"><td class="id">RNF008</td><td><span class="cat cat-seg">Segurança</span></td><td class="req">Log de Acessos</td><td class="desc">Registrar logs de login e alterações críticas, como exclusão de dados.</td></tr>
+      <tr data-cat="rnf-usa"><td class="id">RNF009</td><td><span class="cat cat-usa">Usabilidade</span></td><td class="req">Design Responsivo</td><td class="desc">Adaptar layout para desktop, tablet e dispositivos móveis utilizando Bootstrap.</td></tr>
+      <tr data-cat="rnf-usa"><td class="id">RNF010</td><td><span class="cat cat-usa">Usabilidade</span></td><td class="req">Navegabilidade</td><td class="desc">Menu intuitivo e acesso rápido às funcionalidades principais.</td></tr>
+      <tr data-cat="rnf-usa"><td class="id">RNF011</td><td><span class="cat cat-usa">Usabilidade</span></td><td class="req">Acessibilidade</td><td class="desc">Contraste de cores adequado e uso de cores pastel por curso.</td></tr>
+      <tr data-cat="rnf-usa"><td class="id">RNF012</td><td><span class="cat cat-usa">Usabilidade</span></td><td class="req">Mensagens Claras</td><td class="desc">Mensagens de erro e sucesso em linguagem simples.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF013</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Linguagem</td><td class="desc">PHP 8.x com PDO para acesso ao banco de dados.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF014</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Banco de Dados</td><td class="desc">MySQL/MariaDB.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF015</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Frontend</td><td class="desc">HTML5, CSS3 e JavaScript, utilizando jQuery e Bootstrap.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF016</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Servidor</td><td class="desc">Apache ou Nginx com suporte a cron jobs.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF017</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Versionamento</td><td class="desc">GitHub para controle de versão.</td></tr>
+      <tr data-cat="rnf-tec"><td class="id">RNF018</td><td><span class="cat cat-tec">Tecnologia</span></td><td class="req">Hospedagem</td><td class="desc">Domínio: fatecbr.io.br/grade-horaria.</td></tr>
+      <tr data-cat="rnf-man"><td class="id">RNF019</td><td><span class="cat cat-man">Manutenibilidade</span></td><td class="req">Código Comentado</td><td class="desc">Todos os arquivos devem conter cabeçalho com nome, objetivo, autores e data.</td></tr>
+      <tr data-cat="rnf-man"><td class="id">RNF020</td><td><span class="cat cat-man">Manutenibilidade</span></td><td class="req">Estrutura de Pastas</td><td class="desc">Organização modular: /config, /styles, /tabelas/{entidade}/.</td></tr>
+      <tr data-cat="rnf-man"><td class="id">RNF021</td><td><span class="cat cat-man">Manutenibilidade</span></td><td class="req">Documentação</td><td class="desc">Manual de usuário e técnico em anexo ao TG.</td></tr>
+      <tr data-cat="rnf-man"><td class="id">RNF022</td><td><span class="cat cat-man">Manutenibilidade</span></td><td class="req">Padrões de Nomenclatura</td><td class="desc">Tabelas no plural, chaves primárias no formato id_{entidade} e chaves estrangeiras no formato fk_{entidade}_id.</td></tr>
+    </tbody>
+  </table>
+  </div></div>
+</section>
+
+<!-- ==================== REGRAS DE NEGÓCIO ==================== -->
+<section id="rn">
+  <div class="sec-head">
+    <div class="icon">📐</div>
+    <div><h2>Regras de Negócio</h2><p>14 regras — restrições e políticas que governam o sistema</p></div>
+  </div>
+  <div class="card"><div class="table-wrap">
+  <table>
+    <thead><tr><th>ID</th><th>Regra</th><th>Descrição</th></tr></thead>
+    <tbody>
+      <tr><td class="id">RN001</td><td class="req">Capacidade de Salas</td><td class="desc">Sala não pode ser alocada se a quantidade de alunos exceder a capacidade da sala.</td></tr>
+      <tr><td class="id">RN002</td><td class="req">Contrato de Professores</td><td class="desc">Professor não pode ser alocado em aulas após o término do contrato.</td></tr>
+      <tr><td class="id">RN003</td><td class="req">Ausências e Reposições</td><td class="desc">Ausências devem ser registradas pela Secretaria Acadêmica, não pelo professor.</td></tr>
+      <tr><td class="id">RN004</td><td class="req">Pagamento de Faltas</td><td class="desc">Faltas não repostas são pagas no mês corrente; a auditoria ocorre após dois ou três meses.</td></tr>
+      <tr><td class="id">RN005</td><td class="req">Alocação de Professores</td><td class="desc">Professor não pode ter mais de 8 horas de aula por dia.</td></tr>
+      <tr><td class="id">RN006</td><td class="req">Horários Fixos</td><td class="desc">Horários de aula são fixos por curso (ex.: DMD com horário de início definido).</td></tr>
+      <tr><td class="id">RN007</td><td class="req">Bloqueio de Salas</td><td class="desc">Salas bloqueadas para eventos não podem ser alocadas.</td></tr>
+      <tr><td class="id">RN008</td><td class="req">Prioridade de Alocação</td><td class="desc">Priorizar alocação de salas para turmas com maior número de alunos.</td></tr>
+      <tr><td class="id">RN009</td><td class="req">Substituição de Professores</td><td class="desc">A substituição deve ser registrada com professor substituto.</td></tr>
+      <tr><td class="id">RN010</td><td class="req">Cancelamento de Aulas</td><td class="desc">Aulas podem ser canceladas por motivos externos, como falta d'água.</td></tr>
+      <tr><td class="id">RN011</td><td class="req">Visualização por Cor</td><td class="desc">Cada curso deve possuir uma cor pastel única.</td></tr>
+      <tr><td class="id">RN012</td><td class="req">Acesso Externo</td><td class="desc">Alunos e professores podem visualizar a grade horária sem login.</td></tr>
+      <tr><td class="id">RN013</td><td class="req">Edição Restrita</td><td class="desc">Apenas Secretaria e Coordenador podem editar grades horárias.</td></tr>
+      <tr><td class="id">RN014</td><td class="req">Usuário Administrador</td><td class="desc">O usuário admin (ID=1) não pode ser editado ou excluído pelo sistema.</td></tr>
+    </tbody>
+  </table>
+  </div></div>
+  <p class="note">⚠️ Observação: algumas regras (RN001–RN010) estavam truncadas no documento original e foram completadas conforme o contexto.</p>
+</section>
+
+</main>
+
+<footer>
+  Sistema de Gestão de Grade Horária, Ausências e Salas • FATEC — Análise e Desenvolvimento de Sistemas • TG 2026
+</footer>
+
+<script>
+  const rows=[...document.querySelectorAll('tbody tr')];
+  const searchInput=document.getElementById('search');
+  const counter=document.getElementById('counter');
+  let curPrio='all',curCat='all';
+
+  // indexa o texto de cada linha (sem acentos) para busca
+  rows.forEach(r=>{
+    r.dataset.search=r.innerText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  });
+
+  function applyFilters(){
+    const q=searchInput.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    let visible=0;
+    rows.forEach(r=>{
+      const okSearch=!q||r.dataset.search.includes(q);
+      const okPrio=curPrio==='all'||r.dataset.prio===curPrio;
+      const okCat=curCat==='all'||r.dataset.cat===curCat;
+      const show=okSearch&&okPrio&&okCat;
+      r.style.display=show?'':'none';
+      if(show)visible++;
+    });
+    counter.textContent=`Exibindo ${visible} de ${rows.length} itens`;
+  }
+
+  function setupChips(containerId,attr,setter){
+    const c=document.getElementById(containerId);
+    c.querySelectorAll('.chip-f').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        c.querySelectorAll('.chip-f').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        setter(btn.dataset[attr]);
+        applyFilters();
+      });
+    });
+  }
+  setupChips('prioChips','prio',v=>curPrio=v);
+  setupChips('catChips','cat',v=>curCat=v);
+  searchInput.addEventListener('input',applyFilters);
+  applyFilters();
+
+  // tema claro/escuro
+  const themeBtn=document.getElementById('themeBtn');
+  themeBtn.addEventListener('click',()=>{
+    document.body.classList.toggle('dark');
+    themeBtn.textContent=document.body.classList.contains('dark')?'☀️ Claro':'🌙 Escuro';
+  });
+
+  // rolagem suave
+  document.querySelectorAll('nav a').forEach(a=>{
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      document.querySelector(a.getAttribute('href')).scrollIntoView({behavior:'smooth'});
+    });
+  });
+</script>
+</body>
+</html>

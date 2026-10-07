@@ -1,0 +1,13 @@
+1 - Enxugar a introdução:
+º Por que esta desenvolvendo este tema?
+º Melhorar a justificativa;
+º Dar enfase ao problema e o que estamos solucionando.
+2 - Colocar as páginas dos livros nas referencias:
+º (PRESSMAN; MAXIM, 2021, p. 110)
+3 - Subir as atas das reuniões ao github:
+º Pasta docs
+4 - Expandir as funções dos integrantes no cronograma (inserir pesquisas postadas na equipe do teams)
+5 - Configurar as normas abnt nos trabalhos posteriores.
+6 - Se atentar aos erros de português, em especial vírgulas e palavras mal colocadas.
+7 - Enxugar referencial teorico, objetivo
+8 - Colocar atas de reuniões como apendices no artigo
