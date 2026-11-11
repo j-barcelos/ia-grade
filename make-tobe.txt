@@ -1,3 +1,0 @@
-Modelagem de processos BPMN
-Script SQL
-Excel com requisitos
